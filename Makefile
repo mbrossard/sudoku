@@ -1,4 +1,9 @@
 CFLAGS=-O3
+ifdef VERBOSE
+CFLAGS +=-DVERBOSE
+endif
+
+default: sudoku
 
 test: sudoku big.txt
 	time ./sudoku big.txt

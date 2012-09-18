@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 typedef struct {
@@ -222,7 +223,7 @@ int board_check_single(board_t *board)
 void board_load(board_t *board, char *line)
 {
     int i, j;
-    fprintf(stdout, "%s", line);
+    /* fprintf(stdout, "%s", line); */
     for(j = 0; j < 9; j++) {
         for(i = 0; i < 9; i++) {
             uint8_t offset = board_offset(i, j);
@@ -305,7 +306,6 @@ int board_solve(board_t *board)
 void board_dump(FILE *f, board_t *board)
 {
     static char display[] = " 123456789";
-    static char hex[] = "0123456789ABCDEF";
     int i, j;
     for(j = 0; j < 9; j++) {
         for(i = 0; i < 9; i++) {
@@ -336,11 +336,12 @@ void board_dump(FILE *f, board_t *board)
     fprintf(f, "\n");
 }
 
+
 int main(int argc, char **argv)
 {
     FILE *f;
-    char line[128];
     board_t board;
+    char *line = malloc(128);
 
     if(argc < 2) {
         fprintf(stderr, "Syntax:\n\tsudooku <file>\n\n");
@@ -352,14 +353,21 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    while (fgets(line, sizeof(line) - 1, f)) {
+    while (!feof(f) && (fgets(line, 128, f) != NULL)) {
         if(strlen(line) == 82) {
             board_init(&board);
             board_load(&board, line);
+#ifdef VERBOSE
+            board_dump(stdout, &board);
+#endif
             board_solve(&board);
 #ifdef VERBOSE
             board_dump(stdout, &board);
 #endif
         }
     }
+
+    fclose(f);
+    free(line);
+    exit(0);
 }
