@@ -99,24 +99,30 @@ int check_unit_left(board_t *board, uint8_t u_offset)
     uint8_t ui = (u_offset % 3) * 3;
     uint8_t uj = (u_offset / 3) * 3;
 
+    /* For all possible values */
     for (l = 1; l < 10; l++) {
         uint16_t m = value_to_option(l);
-        uint8_t lx, ly, l_count = 0;
+        uint8_t lx = 0, ly = 0, l_count = 0;
+
+        /* Skip if the value is already used in the unit */
         if((m & board->unit_options[u_offset]) == 0) {
             continue;
         }
-        for (y = uj; y < (uj + 3); y++) {
-            for (x = ui; x < (ui + 3); x++) {
+
+        /* Find if there's only one possible cell */
+        for (y = uj; y < (uj + 3) && l_count < 2; y++) {
+            for (x = ui; x < (ui + 3) && l_count < 2; x++) {
                 uint8_t offset = board_offset(x, y);
-                if(board->values[offset] == 0) {
-                    if(board->options[offset] & m) {
-                        lx = x;
-                        ly = y;
-                        l_count++;
-                    }
+                if((board->values[offset] == 0) &&
+                   (board->options[offset] & m)) {
+                    l_count += 1;
+                    lx = x;
+                    ly = y;
                 }
             }
         }
+
+        /* If only one possible cell, set its value. */
         if(l_count == 1) {
             if(board_set(board, lx, ly, l)) {
                 return 1;
