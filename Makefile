@@ -1,6 +1,6 @@
-CFLAGS=-O3
-ifdef VERBOSE
-CFLAGS +=-DVERBOSE
+CFLAGS = -O3
+ifdef DEBUG
+CFLAGS += -DDEBUG -g -Wall
 endif
 
 default: sudoku
