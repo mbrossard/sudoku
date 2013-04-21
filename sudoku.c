@@ -277,6 +277,7 @@ int board_solve(board_t *board)
                         uint8_t o = board_offset(x, y);
                         if(board->values[o] == 0 &&
                            board->options_count[o] < o_min ) {
+                            o_min = board->options_count[o];
                             lx = x;
                             ly = y;
                             offset = o;
