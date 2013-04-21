@@ -11,6 +11,7 @@ typedef struct {
     uint8_t unit_count[9];     // Unknown square count in unit
     uint16_t unit_options[9];  // Bit-field with value not defined in unit
     uint8_t modified;          // Used by constraint propagation
+    uint8_t count;             // Unknown squares left
 } board_t;
 
 int board_set(board_t *board, uint8_t i, uint8_t j, uint8_t v);
@@ -28,13 +29,13 @@ void board_init(board_t *board)
             board->values[i] = 0;
             board->options[i] = o_mask;
             board->options_count[i] = 9;
-            board->unit_count[i] = 0;
         }
         for(i = 0; i < 9; i++) {
             board->unit_count[i] = 0;
             board->unit_options[i] = o_mask;
         }
         board->modified = 0;
+        board->count = 81;
     }
 }
 
@@ -196,6 +197,7 @@ int board_set(board_t *board, uint8_t i, uint8_t j, uint8_t v)
     board->unit_options[u_offset] &= (o_mask ^ opt);
 
     board->modified = 1;
+    board->count--;
 
     if(check_unit(board, i, j, v, opt) ||
        check_hline(board, i, j, v, opt) ||
@@ -223,7 +225,7 @@ int board_check_single(board_t *board)
 void board_load(board_t *board, char *line)
 {
     int i, j;
-    /* fprintf(stdout, "%s", line); */
+
     for(j = 0; j < 9; j++) {
         for(i = 0; i < 9; i++) {
             uint8_t offset = board_offset(i, j);
@@ -233,24 +235,11 @@ void board_load(board_t *board, char *line)
             }
         }
     }
-    board_check_single(board);
-}
-
-
-int board_is_solved(board_t *board)
-{
-    int i;
-    for(i = 0; i < 81; i++) {
-        if(board->values[i] == 0) {
-            return 0;
-        }
-    }
-    return 1;
 }
 
 int board_solve(board_t *board)
 {
-    if(board_is_solved(board)) {
+    if(board->count == 0) {
         return 0;
     } else {
         board_t current;
