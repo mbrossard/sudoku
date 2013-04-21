@@ -147,12 +147,6 @@ int check_unit(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
         }
     }
 
-    // Check if a value has only one possible square
-    uint8_t u_offset = (i / 3) + 3 * (j / 3);
-    if(check_unit_left(board, u_offset)) {
-        return 1;
-    }
-
     return 0;
 }
 
