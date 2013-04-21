@@ -67,7 +67,6 @@ inline uint16_t value_to_option(uint8_t option)
     return (option > 0 && option < 10) ? options[option] : o_mask;
 }
 
-
 inline uint8_t board_offset(uint8_t i, uint8_t j)
 {
     return j * 9 + i;
@@ -75,23 +74,23 @@ inline uint8_t board_offset(uint8_t i, uint8_t j)
 
 inline int test_cell(board_t *board, uint8_t x, uint8_t y, uint8_t v, uint16_t opt)
 {
+    int rv = 0;
     uint8_t offset = board_offset(x, y);
     if(board->values[offset] == v) {
-        return 1;
+        rv = 1;
     } else if(board->values[offset] == 0) {
         if((board->options[offset] & opt)) {
-            uint16_t o = board->options[offset];
             board->options[offset] &= (o_mask ^ opt);
             board->options_count[offset]--;
             if(board->options_count[offset] == 1) {
                  uint8_t val = option_to_value(board->options[offset]);
                  if(board_set(board, x, y, val)) {
-                     return 1;
+                     rv = 1;
                  }
             }
         }
     }
-    return 0;
+    return rv;
 }
 
 int check_unit_left(board_t *board, uint8_t u_offset)
