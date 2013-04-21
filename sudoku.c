@@ -343,14 +343,20 @@ int main(int argc, char **argv)
     FILE *f;
     board_t board;
     char *line = malloc(128);
+    int verbose = 0;
 
-    if(argc < 2) {
-        fprintf(stderr, "Syntax:\n\tsudooku <file>\n\n");
+    if(argc > 1 && strcmp(argv[1], "-v") == 0) {
+        verbose = 1;
+    }
+
+    if((argc < 2) || (verbose && argc < 3)) {
+        fprintf(stderr, "Syntax:\n\tsudooku [-v] <file>\n\n");
         return -1;
     }
 
-    if((f = fopen(argv[1], "r")) == NULL) {
-        fprintf(stderr, "Error opening file '%s'\n", argv[1]);
+
+    if((f = fopen(argv[verbose ? 2 : 1], "r")) == NULL) {
+        fprintf(stderr, "Error opening file '%s'\n", argv[verbose ? 2 : 1]);
         return -1;
     }
 
@@ -358,13 +364,13 @@ int main(int argc, char **argv)
         if(strlen(line) == 82) {
             board_init(&board);
             board_load(&board, line);
-#ifdef VERBOSE
-            board_dump(stdout, &board);
-#endif
+            if(verbose) {
+                board_dump(stdout, &board);
+            }
             board_solve(&board);
-#ifdef VERBOSE
-            board_dump(stdout, &board);
-#endif
+            if(verbose) {
+                board_dump(stdout, &board);
+            }
         }
     }
 
