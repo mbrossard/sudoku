@@ -133,7 +133,7 @@ int check_unit_left(board_t *board, uint8_t u_offset)
     return 0;
 }
 
-int check_unit(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
+int propagate_unit(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
 {
     uint8_t x, y;
 
@@ -155,7 +155,7 @@ int check_unit(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
     return 0;
 }
 
-int check_hline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
+inline int propagate_hline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
 {
     uint8_t x;
     for (x = 0; x < 9; x++) {
@@ -168,7 +168,7 @@ int check_hline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
     return 0;
 }
 
-int check_vline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
+inline int propagate_vline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
 {
     uint8_t y;
     for (y = 0; y < 9; y++) {
@@ -180,7 +180,6 @@ int check_vline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
     }
     return 0;
 }
-
 
 int board_set(board_t *board, uint8_t i, uint8_t j, uint8_t v)
 {
@@ -198,9 +197,10 @@ int board_set(board_t *board, uint8_t i, uint8_t j, uint8_t v)
     board->modified = 1;
     board->count--;
 
-    if(check_unit(board, i, j, v, opt) ||
-       check_hline(board, i, j, v, opt) ||
-       check_vline(board, i, j, v, opt)) {
+    /* Propagate cell change to unit, horizontal and vertical line. */
+    if(propagate_unit(board, i, j, v, opt) ||
+       propagate_hline(board, i, j, v, opt) ||
+       propagate_vline(board, i, j, v, opt)) {
         return 1;
     }
     return 0;
@@ -219,7 +219,6 @@ int board_check_single(board_t *board)
     }
     return 0;
 }
-
 
 void board_load(board_t *board, char *line)
 {
