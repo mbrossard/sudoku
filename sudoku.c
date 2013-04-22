@@ -8,7 +8,7 @@ typedef struct {
     uint8_t values[81];        // Contains all square values. 0 means unknown
     uint16_t options[81];      // Bit-field with possible options for square.
                                // 0 means value is known.
-    uint8_t options_count[81]; // Options count for square. 0 means value is known.
+    uint8_t options_count[81]; // Options count for square. 0 means value known
     uint8_t unit_count[9];     // Unknown square count in unit
     uint8_t hline_count[9];    // Unknown square count in hline
     uint8_t vline_count[9];    // Unknown square count in vline
@@ -282,21 +282,22 @@ inline int propagate_vline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint
             }
         }
     }
+
     return 0;
 }
 
 int board_set(board_t *board, uint8_t i, uint8_t j, uint8_t v)
 {
     uint8_t offset = board_offset(i, j);
-    uint8_t u_offset = (i / 3) + 3 * (j / 3);
+    uint8_t u = (i / 3) + 3 * (j / 3);
     uint16_t opt = value_to_option(v);
 
     board->values[offset] = v;
     board->options[offset] = 0;
     board->options_count[offset] = 0;
 
-    board->unit_count[u_offset]++;
-    board->unit_options[u_offset] &= (o_mask ^ opt);
+    board->unit_count[u]++;
+    board->unit_options[u] &= (o_mask ^ opt);
 
     board->hline_count[j]++;
     board->hline_options[j] &= (o_mask ^ opt);
