@@ -237,15 +237,13 @@ int check_vline_left(board_t *board)
     return 0;
 }
 
-int propagate_unit(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
+int propagate(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
 {
     uint8_t x, y;
+    // (ui, uj) is the unit's upper-left coordinate
+    uint8_t ui = (i / 3) * 3, uj = (j / 3) * 3;
 
-    // Compute (ui, uj): the unit's upper-left coordinate
-    uint8_t ui = (i / 3) * 3;
-    uint8_t uj = (j / 3) * 3;
-
-    // Eliminate 
+    // Propagate change in the unit
     for (y = uj; y < (uj + 3); y++) {
         for (x = ui; x < (ui + 3); x++) {
             if(!(x == i && y == j)) {
@@ -256,12 +254,7 @@ int propagate_unit(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt
         }
     }
 
-    return 0;
-}
-
-inline int propagate_hline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
-{
-    uint8_t x;
+    // Propagate change in the horizontal line
     for (x = 0; x < 9; x++) {
         if(x != i) {
             if(test_cell(board, x, j, v, opt)) {
@@ -269,12 +262,8 @@ inline int propagate_hline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint
             }
         }
     }
-    return 0;
-}
 
-inline int propagate_vline(board_t *board, uint8_t i, uint8_t j, uint8_t v, uint16_t opt)
-{
-    uint8_t y;
+    // Propagate change in the vertical line
     for (y = 0; y < 9; y++) {
         if(y != j) {
             if(test_cell(board, i, y, v, opt)) {
@@ -309,9 +298,7 @@ int board_set(board_t *board, uint8_t i, uint8_t j, uint8_t v)
     board->count--;
 
     /* Propagate cell change to unit, horizontal and vertical line. */
-    if(propagate_unit(board, i, j, v, opt) ||
-       propagate_hline(board, i, j, v, opt) ||
-       propagate_vline(board, i, j, v, opt)) {
+    if(propagate(board, i, j, v, opt)) {
         return 1;
     }
     return 0;
