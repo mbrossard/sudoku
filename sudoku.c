@@ -1,3 +1,4 @@
+#include <strings.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -240,11 +241,11 @@ int board_solve(board_t *board)
     if(board->count == 0) {
         return 0;
     } else {
+        uint8_t u, l, offset = 0, lx = 0, ly = 0, u_max = 0, o_min = 9;
         board_t current;
 
-        // Identify the maximum number of indentified
-        // squares per unit.
-        uint8_t u, offset, o, u_max = 0, o_min = 9;
+        // Identify the maximum number of indentified squares per
+        // unit (except those completely identified).
         for (u = 0; u < 9; u++) {
             if(board->unit_count[u] > u_max && board->unit_count[u] < 9) {
                 u_max = board->unit_count[u];
@@ -252,39 +253,43 @@ int board_solve(board_t *board)
         }
 
         // Find the square with the minimum number of possible options
-        // within a unit with the maximum number of identified squares.
-        uint8_t lx, ly;
+        // within a unit with the maximum number of identified
+        // squares.
         for (u = 0; u < 9; u++) {
-            if(board->unit_count[u] == u_max) {
-                uint8_t ui = (u % 3) * 3;
-                uint8_t uj = (u / 3) * 3;
-                uint8_t x, y;
-                for (y = uj; y < (uj + 3); y++) {
-                    for (x = ui; x < (ui + 3); x++) {
-                        uint8_t o = board_offset(x, y);
-                        if(board->values[o] == 0 &&
-                           board->options_count[o] < o_min ) {
-                            o_min = board->options_count[o];
-                            lx = x;
-                            ly = y;
-                            offset = o;
-                        }
+            if(board->unit_count[u] != u_max) {
+                continue;
+            }
+
+            uint8_t x, y, ui = (u % 3) * 3, uj = (u / 3) * 3;
+            for (y = uj; y < (uj + 3); y++) {
+                for (x = ui; x < (ui + 3); x++) {
+                    uint8_t o = board_offset(x, y);
+                    if(board->values[o] == 0 &&
+                       board->options_count[o] < o_min ) {
+                        o_min = board->options_count[o];
+                        lx = x;
+                        ly = y;
+                        offset = o;
                     }
                 }
             }
         }
 
-        uint8_t l;
+        // Use this square to explore recursively
         for (l = 1; l < 10; l++) {
             uint16_t m = value_to_option(l);
-            if((m & board->options[offset])) {
-                board_copy(&current, board);
-                if(board_set(&current, lx, ly, l) == 0 &&
-                   board_check_single(&current) == 0 &&
-                   board_solve(&current) == 0) {
-                    board_copy(board, &current);
-                    return 0;
-                }
+            // We iterate on the valid options for the square
+            if(!(m & board->options[offset])) {
+                continue;
+            }
+
+            board_copy(&current, board); // Work on a copy of the board
+            if(board_set(&current, lx, ly, l) == 0 &&
+               board_check_single(&current) == 0 &&
+               board_solve(&current) == 0) {
+                // The value we tried was a success copy back the result
+                board_copy(board, &current);
+                return 0;
             }
         }
     }
@@ -354,7 +359,9 @@ int main(int argc, char **argv)
             if(verbose) {
                 board_dump(stdout, &board);
             }
-            board_solve(&board);
+            if(board_solve(&board) != 0) {
+                fprintf(stderr, "Error solving\n");
+            }
             if(verbose) {
                 board_dump(stdout, &board);
             }
