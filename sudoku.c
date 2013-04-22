@@ -10,8 +10,13 @@ typedef struct {
                                // 0 means value is known.
     uint8_t options_count[81]; // Options count for square. 0 means value is known.
     uint8_t unit_count[9];     // Unknown square count in unit
+    uint8_t hline_count[9];    // Unknown square count in hline
+    uint8_t vline_count[9];    // Unknown square count in vline
     uint16_t unit_options[9];  // Bit-field with value not defined in unit
+    uint16_t hline_options[9]; // Bit-field with value not defined in hline
+    uint16_t vline_options[9]; // Bit-field with value not defined in vline
     uint8_t modified;          // Used by constraint propagation
+    uint8_t break_out;         // Used by constraint propagation
     uint8_t count;             // Unknown squares left
 } board_t;
 
@@ -34,6 +39,10 @@ void board_init(board_t *board)
         for(i = 0; i < 9; i++) {
             board->unit_count[i] = 0;
             board->unit_options[i] = o_mask;
+            board->hline_count[i] = 0;
+            board->hline_options[i] = o_mask;
+            board->vline_count[i] = 0;
+            board->vline_options[i] = o_mask;
         }
         board->modified = 0;
         board->count = 81;
@@ -94,25 +103,74 @@ inline int test_cell(board_t *board, uint8_t x, uint8_t y, uint8_t v, uint16_t o
     return rv;
 }
 
-int check_unit_left(board_t *board, uint8_t u_offset)
+int check_unit_left(board_t *board)
 {
-    uint8_t x, y, l;
-    uint8_t ui = (u_offset % 3) * 3;
-    uint8_t uj = (u_offset / 3) * 3;
-
-    /* For all possible values */
-    for (l = 1; l < 10; l++) {
-        uint16_t m = value_to_option(l);
-        uint8_t lx = 0, ly = 0, l_count = 0;
-
-        /* Skip if the value is already used in the unit */
-        if((m & board->unit_options[u_offset]) == 0) {
+    uint8_t x, y, l, u_offset;
+    for(u_offset = 0; u_offset < 9; u_offset++) {
+        if(board->unit_count[u_offset] == 9) {
             continue;
         }
 
-        /* Find if there's only one possible cell */
-        for (y = uj; y < (uj + 3) && l_count < 2; y++) {
-            for (x = ui; x < (ui + 3) && l_count < 2; x++) {
+        uint8_t ui = (u_offset % 3) * 3, uj = (u_offset / 3) * 3;
+
+        /* For all possible values */
+        for (l = 1; l < 10; l++) {
+            uint16_t m = value_to_option(l);
+            uint8_t lx = 0, ly = 0, l_count = 0;
+            
+            /* Skip if the value is already used in the unit */
+            if((m & board->unit_options[u_offset]) == 0) {
+                continue;
+            }
+            
+            /* Find if there's only one possible cell */
+            for (y = uj; y < (uj + 3) && l_count < 2; y++) {
+                for (x = ui; x < (ui + 3) && l_count < 2; x++) {
+                    uint8_t offset = board_offset(x, y);
+                    if((board->values[offset] == 0) &&
+                       (board->options[offset] & m)) {
+                        l_count += 1;
+                        lx = x;
+                        ly = y;
+                    }
+                }
+            }
+            
+            /* If only one possible cell, set its value. */
+            if(l_count == 1) {
+                if(board_set(board, lx, ly, l)) {
+                    return 1;
+                } else {
+                    board->break_out = 1;
+                    return 0;
+                }
+            }
+        }
+        
+    }
+
+    return 0;
+}
+
+int check_hline_left(board_t *board)
+{
+    uint8_t x, y, l;
+
+    for(y = 0; y < 9; y++) {
+        if(board->hline_count[y] == 9) {
+            continue;
+        }
+
+        for (l = 1; l < 10; l++) {
+            uint16_t m = value_to_option(l);
+            uint8_t lx = 0, ly = 0, l_count = 0;
+
+            /* Skip if the value is already used in the hline */
+            if((m & board->hline_options[y]) == 0) {
+                continue;
+            }
+
+            for(x = 0; x < 9 && l_count < 2; x++) {
                 uint8_t offset = board_offset(x, y);
                 if((board->values[offset] == 0) &&
                    (board->options[offset] & m)) {
@@ -121,12 +179,57 @@ int check_unit_left(board_t *board, uint8_t u_offset)
                     ly = y;
                 }
             }
+
+            /* If only one possible cell, set its value. */
+            if(l_count == 1) {
+                if(board_set(board, lx, ly, l)) {
+                    return 1;
+                } else {
+                    board->break_out = 1;
+                    return 0;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+int check_vline_left(board_t *board)
+{
+    uint8_t x, y, l;
+    
+    for(x = 0; x < 9; x++) {
+        if(board->vline_count[x] == 9) {
+            continue;
         }
 
-        /* If only one possible cell, set its value. */
-        if(l_count == 1) {
-            if(board_set(board, lx, ly, l)) {
-                return 1;
+        for (l = 1; l < 10; l++) {
+            uint16_t m = value_to_option(l);
+            uint8_t lx = 0, ly = 0, l_count = 0;
+            
+            /* Skip if the value is already used in the hline */
+            if((m & board->vline_options[x]) == 0) {
+                continue;
+            }
+            for(y = 0; y < 9  && l_count < 2; y++) {
+                uint8_t offset = board_offset(x, y);
+                if((board->values[offset] == 0) &&
+                   (board->options[offset] & m)) {
+                    l_count += 1;
+                    lx = x;
+                    ly = y;
+                }
+            }
+
+            /* If only one possible cell, set its value. */
+            if(l_count == 1) {
+                if(board_set(board, lx, ly, l)) {
+                    return 1;
+                } else {
+                    board->break_out = 1;
+                    return 0;
+                }
             }
         }
     }
@@ -195,6 +298,12 @@ int board_set(board_t *board, uint8_t i, uint8_t j, uint8_t v)
     board->unit_count[u_offset]++;
     board->unit_options[u_offset] &= (o_mask ^ opt);
 
+    board->hline_count[j]++;
+    board->hline_options[j] &= (o_mask ^ opt);
+
+    board->vline_count[i]++;
+    board->vline_options[i] &= (o_mask ^ opt);
+
     board->modified = 1;
     board->count--;
 
@@ -210,14 +319,24 @@ int board_set(board_t *board, uint8_t i, uint8_t j, uint8_t v)
 int board_check_single(board_t *board)
 {
     while(board->modified) {
-        uint8_t u_offset;
         board->modified = 0;
-        for(u_offset = 0; u_offset < 9; u_offset++) {
-            if(check_unit_left(board, u_offset)) {
+        board->break_out = 0;
+        if(check_unit_left(board)) {
+            return 1;
+        }
+        if(board->break_out == 0) {
+            if(check_hline_left(board)) {
+                return 1;
+            }
+        }
+
+        if(board->break_out == 0) {
+            if(check_vline_left(board)) {
                 return 1;
             }
         }
     }
+
     return 0;
 }
 
